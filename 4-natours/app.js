@@ -1,3 +1,4 @@
+const path=require('path')
 const express = require('express');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
@@ -5,14 +6,25 @@ const helmet = require('helmet');
 const mongoSanitize = require('express-mongo-sanitize');
 const xss = require('xss-clean');
 const hpp = require('hpp');
+const cookieParser=require('cookie-parser')
 const AppError = require('./utils/appError');
 const globalErrorHandler = require('./controllers/errorController');
 const tourRouter = require('./routes/tourRoutes');
 const userRouter = require('./routes/userRoutes');
 const reviewRouter=require('./routes/reviewRoutes')
+const bookingRouter=require('./routes/bookingRoutes')
+const viewRouter=require('./routes/viewRouters')
 const app = express();
 
+app.set('view engine','pug')
+app.set('views',path.join(__dirname,'views'))
+
 // 1) global middlewares
+
+// Serving static files
+
+app.use(express.static(path.join(__dirname,'starter','public')));
+
 // Set security HTTP headers
 app.use(helmet());
 // DEvelopment logging
@@ -31,6 +43,9 @@ app.use('/api', limiter);
 
 //Body parser,reading data from body inot req.body
 app.use(express.json({ limit: '10kb' }));
+app.use(express.urlencoded({extended:true,limit:'10kb'}))
+
+app.use(cookieParser())
 
 // Data sanitization against NoSQl query injection
 
@@ -55,23 +70,22 @@ app.use(
   }),
 );
 
-// Serving static files
-
-app.use(express.static(`${__dirname}/starter/public`));
 
 // Test middleware
 
 app.use((req, res, next) => {
   req.requestTime = new Date().toISOString();
-  // console.log(req.headers)
   next();
 });
 
 //3) Routes
 
+
+app.use('/', viewRouter);
 app.use('/api/v1/tours', tourRouter);
 app.use('/api/v1/users', userRouter);
 app.use('/api/v1/reviews',reviewRouter);
+app.use('/api/v1/bookings',bookingRouter);
 
 
 
